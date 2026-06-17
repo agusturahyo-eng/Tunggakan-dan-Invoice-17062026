@@ -488,8 +488,59 @@ function exportSemuaExcel(k) {
   const dataToExport = k === "Semua" ? allData : allData.filter(r => (r.kode || r.Kode || r.KODE) === k);
   const ws = XLSX.utils.json_to_sheet(dataToExport);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Rekap Keseluruhan");
-  XLSX.writeFile(wb, `Rekap_Keseluruhan_${k}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, "Semua Data");
+  XLSX.writeFile(wb, `Rekap_Semua_${k}.xlsx`);
+}
+
+function detailLunas(t) { currentTitle = `Lunas_${t}`; currentDetail = allData.filter(r => (r.kode || r.Kode || r.KODE) === currentPetugas && getStatusLunas(r).isLunas && getStatusLunas(r).tgl === t); pushView(()=>openPetugas(currentPetugas)); renderDetail(); }
+function detailBelum() { currentTitle = "Belum_Lunas"; const p = currentPetugas; currentDetail = allData.filter(r => (p === "Semua" ? true : (r.kode || r.Kode || r.KODE) === p) && !getStatusLunas(r).isLunas); pushView(()=>(p==="Semua"?openGlobal():openPetugas(p))); renderDetail(); }
+function detailGlobalLunas(t) { currentTitle = `Global_Lunas_${t}`; currentDetail = allData.filter(r => getStatusLunas(r).isLunas && getStatusLunas(r).tgl === t); pushView(openGlobal); renderDetail(); }
+
+function renderDetail() {
+  sortState = { key: null, asc: true };
+  view.innerHTML = `<h6 class="text-center fw-bold small text-uppercase">${currentTitle.replace(/_/g,' ')}</h6><div class="d-flex mb-2 gap-1"><input id="search" class="form-control form-control-sm" placeholder="Cari..."><button class="btn btn-success btn-sm" onclick="exportExcel()">XLSX</button></div><div id="tableArea"></div>`;
+  document.getElementById("search").oninput = e => {
+    const t = e.target.value.toLowerCase();
+    drawTable(currentDetail.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(t))));
+  };
+  drawTable(currentDetail);
+}
+
+function drawTable(data) {
+  window.triggerSort = (key) => {
+    if (sortState.key === key) sortState.asc = !sortState.asc; else { sortState.key = key; sortState.asc = true; }
+    const sorted = [...data].sort((a, b) => {
+      let v1 = a[key] || "", v2 = b[key] || "";
+      if (key === 'jumlah') return sortState.asc ? parseIDR(v1) - parseIDR(v2) : parseIDR(v2) - parseIDR(v1);
+      return sortState.asc ? String(v1).localeCompare(String(v2), undefined, {numeric: true}) : String(v2).localeCompare(String(v1), undefined, {numeric: true});
+    });
+    drawTable(sorted);
+  };
+  const icon = (k) => sortState.key === k ? (sortState.asc ? ' ▲' : ' ▼') : '';
+  let h = `<div class="table-responsive"><table class="table table-sm table-bordered table-striped" style="font-size:0.7rem"><thead class="table-primary text-nowrap"><tr><th class="clickable text-start" onclick="triggerSort('idpel')">IDPEL${icon('idpel')}</th><th class="clickable text-start" onclick="triggerSort('nama')">Nama${icon('nama')}</th><th class="clickable text-center" onclick="triggerSort('koked')">Koked${icon('koked')}</th><th class="clickable text-end" onclick="triggerSort('jumlah')">Rp${icon('jumlah')}</th></tr></thead><tbody>`;
+  data.forEach(r => { h += `<tr class="clickable" onclick="showCardsByData('${r.idpel}')"><td class="text-start">${r.idpel}</td><td class="text-start">${r.nama}</td><td class="text-center">${r.koked}</td><td class="text-end">${parseIDR(r.jumlah || r.Jumlah || r.JUMLAH).toLocaleString("id-ID")}</td></tr>`; });
+  document.getElementById("tableArea").innerHTML = h + `</tbody></table></div>`;
+}
+
+function showCardsByData(id) {
+  pushView(renderDetail);
+  let h = "";
+  currentDetail.forEach(r => {
+    h += `<div class="card mb-2 ${r.idpel === id?'highlight':''}" id="card-${r.idpel}"><div class="card-body p-2">
+      <div class="d-flex justify-content-between"><b>${r.nama}</b> <span class="badge bg-light text-dark">${r.koked}</span></div>
+      <p class="text-muted mb-1">${r.idpel} | ${r.tarif}/${r.daya} | ${r.alamat || '-'}</p>
+      <div class="d-flex justify-content-between align-items-center">
+        <b class="text-danger">Rp ${parseIDR(r.jumlah || r.Jumlah || r.JUMLAH).toLocaleString("id-ID")}</b>
+        <div class="d-flex gap-1">
+          <a class="btn btn-success btn-sm" target="_blank" href="https://wa.me/?text=${getFullText(r, 'WA')}">📤 WA</a>
+          <button class="btn btn-danger btn-sm" onclick='createPDF(${JSON.stringify(r)})'>📄 PDF</button>
+          <button class="btn btn-warning btn-sm text-dark fw-bold" onclick='createImage(${JSON.stringify(r).replace(/'/g, "&#39;")})'>🖼️ Gambar</button>
+        </div>
+      </div>
+    </div></div>`;
+  });
+  view.innerHTML = h;
+  if(id) setTimeout(() => document.getElementById(`card-${id}`).scrollIntoView({behavior:'smooth', block:'center'}), 100);
 }
 
 const getFullText = (r, type) => {
@@ -664,7 +715,6 @@ function createPDF(r) {
   if (currentSheet === 'invoice') {
     const canvas = generateCanvasInvoice(r);
     const imgData = canvas.toDataURL('image/jpeg', 1.0);
-    // Membuat ukuran PDF kustom (landscape) yang proporsional dengan rasio Canvas
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [210, 82.5] });
     doc.addImage(imgData, 'JPEG', 0, 0, 210, 82.5);
     doc.save(`Invoice_${r.idpel}.pdf`);
@@ -744,11 +794,6 @@ function createPDF(r) {
 
     doc.save(`Tunggakan_${r.idpel}.pdf`);
   }
-}
-function exportExcel() {
-  const ws = XLSX.utils.json_to_sheet(currentDetail), wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Data");
-  XLSX.writeFile(wb, `Rekap_${currentTitle}.xlsx`);
 }
 
 function generateCanvasInvoice(r) {
