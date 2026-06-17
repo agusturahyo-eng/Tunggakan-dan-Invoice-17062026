@@ -419,7 +419,7 @@ function openPetugas(k) {
   
   let h = `<div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-2 gap-2">
              <h6 class="text-primary fw-bold mb-0">Petugas: ${displayName} (${k})</h6>
-             <button class="btn btn-success btn-sm" onclick="exportSemuaExcel('${k}')">📥 Download Semua Data (XLSX)</button>
+             <button class="btn btn-success btn-sm fw-bold" onclick="exportSemuaExcel('${k}')">📥 Download Data Lunas & Belum Lunas</button>
            </div>
            <div class="table-responsive">
              <table class="table table-sm table-bordered table-striped">
@@ -460,7 +460,7 @@ function openGlobal() {
   
   let h = `<div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-2 gap-2">
              <h6 class="text-primary fw-bold mb-0">Semua Petugas</h6>
-             <button class="btn btn-success btn-sm" onclick="exportSemuaExcel('Semua')">📥 Download Semua Data (XLSX)</button>
+             <button class="btn btn-success btn-sm fw-bold" onclick="exportSemuaExcel('Semua')">📥 Download Data Lunas & Belum Lunas</button>
            </div>
            <div class="table-responsive">
              <table class="table table-sm table-bordered table-striped">
@@ -483,7 +483,15 @@ function openGlobal() {
       
   view.innerHTML = h;
 }
-
+    
+function exportSemuaExcel(k) {
+  const dataToExport = k === "Semua" ? allData : allData.filter(r => (r.kode || r.Kode || r.KODE) === k);
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Rekap Keseluruhan");
+  XLSX.writeFile(wb, `Rekap_Keseluruhan_${k}.xlsx`);
+}
+    
 function exportSemuaExcel(k) {
   const dataToExport = k === "Semua" ? allData : allData.filter(r => (r.kode || r.Kode || r.KODE) === k);
   const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -715,9 +723,10 @@ function createPDF(r) {
   if (currentSheet === 'invoice') {
     const canvas = generateCanvasInvoice(r);
     const imgData = canvas.toDataURL('image/jpeg', 1.0);
+    // Membuat ukuran PDF kustom (landscape) yang proporsional dengan rasio Canvas
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [210, 82.5] });
     doc.addImage(imgData, 'JPEG', 0, 0, 210, 82.5);
-    doc.save(\`Invoice_\${r.idpel}.pdf\`);
+    doc.save(`Invoice_${r.idpel}.pdf`);
   } else {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [219, 139.7] });
     const info = getFullText(r, 'PDF');
@@ -781,7 +790,7 @@ function createPDF(r) {
     doc.text("MENUNJUKKAN SURAT PEMBERITAHUAN INI", 62.5, boxY + 8, { align: "center" });
 
     let sigX = 170;
-    doc.text(\`TULUNG, \${info.tgl}\`, sigX, boxY + 2, { align: "center" });
+    doc.text(`TULUNG, ${info.tgl}`, sigX, boxY + 2, { align: "center" });
     doc.text("MANAGER", sigX, boxY + 6, { align: "center" });
     doc.text("MARTONO AJI PRABOWO", sigX, boxY + 22, { align: "center" });
 
@@ -792,10 +801,9 @@ function createPDF(r) {
     doc.text("A5 TUL VI-01/PETUGAS PEMUTUS....................................", 8, 134);
     doc.text("ABAIKAN PEMBERITAHUAN INI JIKA SUDAH MEMBAYAR TAGIHAN", 8, 137.5);
 
-    doc.save(\`Tunggakan_\${r.idpel}.pdf\`);
+    doc.save(`Tunggakan_${r.idpel}.pdf`);
   }
 }
-
 function generateCanvasInvoice(r) {
   const canvas = document.createElement('canvas');
   const scale = 3; 
