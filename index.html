@@ -88,7 +88,7 @@ const parseIDR = (val) => {
   if (!val) return 0;
   let clean = String(val).replace(/[^0-9,-]/g, '').split(',')[0];
   return parseFloat(clean) || 0;
-}
+};
 
 function getStatusLunas(r) {
   const valRaw = (r['tgl_lunas'] || r['Tgl Lunas'] || r['tgl lunas'] || "").toString().trim();
@@ -483,7 +483,7 @@ function openGlobal() {
       
   view.innerHTML = h;
 }
-    
+
 function exportSemuaExcel(k) {
   const dataToExport = k === "Semua" ? allData : allData.filter(r => (r.kode || r.Kode || r.KODE) === k);
   const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -491,92 +491,33 @@ function exportSemuaExcel(k) {
   XLSX.utils.book_append_sheet(wb, ws, "Rekap Keseluruhan");
   XLSX.writeFile(wb, `Rekap_Keseluruhan_${k}.xlsx`);
 }
-    
-function exportSemuaExcel(k) {
-  const dataToExport = k === "Semua" ? allData : allData.filter(r => (r.kode || r.Kode || r.KODE) === k);
-  const ws = XLSX.utils.json_to_sheet(dataToExport);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Semua Data");
-  XLSX.writeFile(wb, \`Rekap_Semua_\${k}.xlsx\`);
-}
-
-function detailLunas(t) { currentTitle = \`Lunas_\${t}\`; currentDetail = allData.filter(r => (r.kode || r.Kode || r.KODE) === currentPetugas && getStatusLunas(r).isLunas && getStatusLunas(r).tgl === t); pushView(()=>openPetugas(currentPetugas)); renderDetail(); }
-function detailBelum() { currentTitle = "Belum_Lunas"; const p = currentPetugas; currentDetail = allData.filter(r => (p === "Semua" ? true : (r.kode || r.Kode || r.KODE) === p) && !getStatusLunas(r).isLunas); pushView(()=>(p==="Semua"?openGlobal():openPetugas(p))); renderDetail(); }
-function detailGlobalLunas(t) { currentTitle = \`Global_Lunas_\${t}\`; currentDetail = allData.filter(r => getStatusLunas(r).isLunas && getStatusLunas(r).tgl === t); pushView(openGlobal); renderDetail(); }
-
-function renderDetail() {
-  sortState = { key: null, asc: true };
-  view.innerHTML = \`<h6 class="text-center fw-bold small text-uppercase">\${currentTitle.replace(/_/g,' ')}</h6><div class="d-flex mb-2 gap-1"><input id="search" class="form-control form-control-sm" placeholder="Cari..."><button class="btn btn-success btn-sm" onclick="exportExcel()">XLSX</button></div><div id="tableArea"></div>\`;
-  document.getElementById("search").oninput = e => {
-    const t = e.target.value.toLowerCase();
-    drawTable(currentDetail.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(t))));
-  };
-  drawTable(currentDetail);
-}
-
-function drawTable(data) {
-  window.triggerSort = (key) => {
-    if (sortState.key === key) sortState.asc = !sortState.asc; else { sortState.key = key; sortState.asc = true; }
-    const sorted = [...data].sort((a, b) => {
-      let v1 = a[key] || "", v2 = b[key] || "";
-      if (key === 'jumlah') return sortState.asc ? parseIDR(v1) - parseIDR(v2) : parseIDR(v2) - parseIDR(v1);
-      return sortState.asc ? String(v1).localeCompare(String(v2), undefined, {numeric: true}) : String(v2).localeCompare(String(v1), undefined, {numeric: true});
-    });
-    drawTable(sorted);
-  };
-  const icon = (k) => sortState.key === k ? (sortState.asc ? ' ▲' : ' ▼') : '';
-  let h = \`<div class="table-responsive"><table class="table table-sm table-bordered table-striped" style="font-size:0.7rem"><thead class="table-primary text-nowrap"><tr><th class="clickable text-start" onclick="triggerSort('idpel')">IDPEL\${icon('idpel')}</th><th class="clickable text-start" onclick="triggerSort('nama')">Nama\${icon('nama')}</th><th class="clickable text-center" onclick="triggerSort('koked')">Koked\${icon('koked')}</th><th class="clickable text-end" onclick="triggerSort('jumlah')">Rp\${icon('jumlah')}</th></tr></thead><tbody>\`;
-  data.forEach(r => { h += \`<tr class="clickable" onclick="showCardsByData('\${r.idpel}')"><td class="text-start">\${r.idpel}</td><td class="text-start">\${r.nama}</td><td class="text-center">\${r.koked}</td><td class="text-end">\${parseIDR(r.jumlah || r.Jumlah || r.JUMLAH).toLocaleString("id-ID")}</td></tr>\`; });
-  document.getElementById("tableArea").innerHTML = h + \`</tbody></table></div>\`;
-}
-
-function showCardsByData(id) {
-  pushView(renderDetail);
-  let h = "";
-  currentDetail.forEach(r => {
-    h += \`<div class="card mb-2 \${r.idpel === id?'highlight':''}" id="card-\${r.idpel}"><div class="card-body p-2">
-      <div class="d-flex justify-content-between"><b>\${r.nama}</b> <span class="badge bg-light text-dark">\${r.koked}</span></div>
-      <p class="text-muted mb-1">\${r.idpel} | \${r.tarif}/\${r.daya} | \${r.alamat || '-'}</p>
-      <div class="d-flex justify-content-between align-items-center">
-        <b class="text-danger">Rp \${parseIDR(r.jumlah || r.Jumlah || r.JUMLAH).toLocaleString("id-ID")}</b>
-        <div class="d-flex gap-1">
-          <a class="btn btn-success btn-sm" target="_blank" href="https://wa.me/?text=\${getFullText(r, 'WA')}">📤 WA</a>
-          <button class="btn btn-danger btn-sm" onclick='createPDF(\${JSON.stringify(r)})'>📄 PDF</button>
-          <button class="btn btn-warning btn-sm text-dark fw-bold" onclick='createImage(\${JSON.stringify(r).replace(/'/g, "&#39;")})'>🖼️ Gambar</button>
-        </div>
-      </div>
-    </div></div>\`;
-  });
-  view.innerHTML = h;
-  if(id) setTimeout(() => document.getElementById(\`card-\${id}\`).scrollIntoView({behavior:'smooth', block:'center'}), 100);
-}
 
 const getFullText = (r, type) => {
   const date = new Date();
   const nBulanFull = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
   const nBulanShort = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOP", "DES"];
   const blnIniFull = nBulanFull[date.getMonth()];
-  const blnIni = \`\${nBulanShort[date.getMonth()]}-\${date.getFullYear()}\`;
-  const blnLalu = date.getMonth() === 0 ? \`DES-\${date.getFullYear()-1}\` : \`\${nBulanShort[date.getMonth()-1]}-\${date.getFullYear()}\`;
+  const blnIni = `${nBulanShort[date.getMonth()]}-${date.getFullYear()}`;
+  const blnLalu = date.getMonth() === 0 ? `DES-${date.getFullYear()-1}` : `${nBulanShort[date.getMonth()-1]}-${date.getFullYear()}`;
   
   const bln3LaluDate = new Date(date.getFullYear(), date.getMonth() - 2, 1);
   const bln3LaluMonthShort = nBulanShort[bln3LaluDate.getMonth()];
   const bln3LaluYear = bln3LaluDate.getFullYear();
-  const bln3LaluStr = \`\${bln3LaluMonthShort}-\${bln3LaluYear}\`;
+  const bln3LaluStr = `${bln3LaluMonthShort}-${bln3LaluYear}`;
   
   if (currentSheet === 'invoice') {
     if (type === 'WA') {
       return encodeURIComponent("*PT. PLN (PERSERO) UID JAWA TENGAH DAN DIY*\n*UP3 KLATEN*\n*ULP TULUNG*\n\n*PEMBERITAHUAN TAGIHAN LISTRIK*\n==========================================\nPelanggan setia PLN,\n*Nama* : " + r.nama + "\n*GarduTiang* : " + (r.gardu || '-') + "\n*Idpel* : " + r.idpel + "\n*Koked* : " + r.koked + "\n*Alamat* : " + (r.alamat || '-') + "\n*Tarif / Daya* : " + r.tarif + " / " + r.daya + "\n*No. Kwh* : " + (r.no_kwh || '-') + "\n\nBersama ini kami sampaikan bahwa Jumlah Total tagihan listrik bulan *" + blnIniFull + " " + date.getFullYear() + "* adalah *" + parseIDR(r.jumlah || r.Jumlah || r.JUMLAH).toLocaleString("id-ID") + "* (Belum termasuk biaya admin Bank).\n\nAgar terhindar dari pemutusan aliran listrik, kami berharap agar tagihan di atas segera dilunasi.\nBatas akhir pembayaran tagihan listrik adalah tanggal 20 setiap bulannya & hari libur transaksi masih bisa dilakukan pada Loket-loket PPOB online.\n\nApabila sampai dengan batas waktu yang ditentukan, tanggal 20 belum lunas, maka akan dilakukan pemutusan aliran listrik.\nDemikian atas perhatian dan kerjasamanya diucapkan terimakasih.\n\nTulung, " + date.getDate() + " " + blnIniFull + " " + date.getFullYear() + "\n\n*BAYARLAH LISTRIK TANGGAL 1-15 SETIAP BULANNYA*\n*PASTI NYAMAN SEMUA SENANG*\n\n*MARTONO AJI PRABOWO*\n\n_ABAIKAN PEMBERITAHUAN INI JIKA SUDAH MEMBAYAR TAGIHAN_");
     }
-    return { tgl: \`\${date.getDate()} \${blnIniFull} \${date.getFullYear()}\`, blnIniFull };
+    return { tgl: `${date.getDate()} ${blnIniFull} ${date.getFullYear()}`, blnIniFull };
   } else {
     let periode;
     if (currentSheet === 'lembar1') {
-      periode = \`\${blnIni} s/d \${blnIni} (1 LEMBAR)\`;
+      periode = `${blnIni} s/d ${blnIni} (1 LEMBAR)`;
     } else if (currentSheet === 'lembar3') {
-      periode = \`\${bln3LaluStr} s/d \${blnIni} (3 LEMBAR)\`;
+      periode = `${bln3LaluStr} s/d ${blnIni} (3 LEMBAR)`;
     } else {
-      periode = \`\${blnLalu} s/d \${blnIni} (2 LEMBAR)\`;
+      periode = `${blnLalu} s/d ${blnIni} (2 LEMBAR)`;
     }
 
     const body1 = "Dengan ini diberitahukan dengan hormat bahwa pada hari ini aliran listrik di rumah/alamat seperti tersebut diatas terpaksa diputus untuk sementara karena rekening listrik belum dilunasi pada waktu yang telah ditetapkan.";
@@ -586,7 +527,7 @@ const getFullText = (r, type) => {
     if (type === 'WA') {
       return encodeURIComponent("*PT. PLN (PERSERO) UID JAWA TENGAH DAN DIY*\n*UP3 KLATEN*\n*ULP TULUNG*\n\n*PEMBERITAHUAN PELAKSANAAN PEMUTUSAN SEMENTARA SAMBUNGAN TENAGA LISTRIK*\n==========================================\n*Kepada Yth.*\n*Nama* : " + r.nama + "\n*ID. Pelanggan* : " + r.idpel + "\n*Alamat* : " + (r.alamat || '-') + "\n*Tarip / Daya* : " + r.tarif + " / " + r.daya + "\n*Koked* : " + r.koked + "\n\n*Rekening* : " + periode + "\n*Rp.* : " + parseIDR(r.rptag).toLocaleString("id-ID") + "\n*Jumlah Biaya Keterlambatan s.d bulan : " + blnIni + "*\n*Rp.* : " + parseIDR(r.rpbk).toLocaleString("id-ID") + "\n\n*Jumlah Tunggakan (belum termasuk biaya Administrasi)*\n*Rp.* : *" + parseIDR(r.jumlah || r.Jumlah || r.JUMLAH).toLocaleString("id-ID") + "*\n\n" + body1 + "\n\n" + body2 + "\n\n" + body3 + "\n\n*UNTUK MENGHINDARI RESIKO, MOHON TIDAK TITIP PEMBAYARAN REKENING KEPADA PETUGAS*\n\nTULUNG, " + date.getDate() + " " + nBulanFull[date.getMonth()] + " " + date.getFullYear() + "\n*MANAGER*\n*MARTONO AJI PRABOWO*\n\n_ABAIKAN PEMBERITAHUAN INI JIKA SUDAH MEMBAYAR TAGIHAN_");
     }
-    return { periode, blnIni, body1, body2, body3, tgl: \`\${date.getDate()} \${nBulanFull[date.getMonth()]} \${date.getFullYear()}\` };
+    return { periode, blnIni, body1, body2, body3, tgl: `${date.getDate()} ${nBulanFull[date.getMonth()]} ${date.getFullYear()}` };
   }
 };
 
@@ -637,13 +578,13 @@ function generateCanvasTunggakan(r) {
   const date = new Date();
   const nBulanFull = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
   const nBulanShort = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOP", "DES"];
-  const blnIni = \`\${nBulanShort[date.getMonth()]}-\${date.getFullYear()}\`;
-  const blnLalu = date.getMonth() === 0 ? \`DES-\${date.getFullYear()-1}\` : \`\${nBulanShort[date.getMonth()-1]}-\${date.getFullYear()}\`;
-  const blnLalu2 = date.getMonth() <= 1 ? \`\${nBulanShort[date.getMonth()+10]}-\${date.getFullYear()-1}\` : \`\${nBulanShort[date.getMonth()-2]}-\${date.getFullYear()}\`;
+  const blnIni = `${nBulanShort[date.getMonth()]}-${date.getFullYear()}`;
+  const blnLalu = date.getMonth() === 0 ? `DES-${date.getFullYear()-1}` : `${nBulanShort[date.getMonth()-1]}-${date.getFullYear()}`;
+  const blnLalu2 = date.getMonth() <= 1 ? `${nBulanShort[date.getMonth()+10]}-${date.getFullYear()-1}` : `${nBulanShort[date.getMonth()-2]}-${date.getFullYear()}`;
   
-  let periode = (currentSheet === 'lembar1') ? \`\${blnIni} s/d \${blnIni} (1 LEMBAR)\` : 
-                (currentSheet === 'lembar3') ? \`\${blnLalu2} s/d \${blnIni} (3 LEMBAR)\` : 
-                \`\${blnLalu} s/d \${blnIni} (2 LEMBAR)\`;
+  let periode = (currentSheet === 'lembar1') ? `${blnIni} s/d ${blnIni} (1 LEMBAR)` : 
+                (currentSheet === 'lembar3') ? `${blnLalu2} s/d ${blnIni} (3 LEMBAR)` : 
+                `${blnLalu} s/d ${blnIni} (2 LEMBAR)`;
   
   write("Rekening : " + periode, 30, 220);
   write("Jumlah Biaya Keterlambatan s.d bulan : " + blnIni, 30, 235);
@@ -704,10 +645,10 @@ function generateCanvasTunggakan(r) {
   write("TGL. STAND PUTUS PELANGGAN : ....................", 40, yBottom + 50);
   write("TGL. NYALA KEMBALI         : ....................", 40, yBottom + 65);
 
-  let tglString = \`\${date.getDate()} \${nBulanFull[date.getMonth()]} \${date.getFullYear()}\`;
+  let tglString = `${date.getDate()} ${nBulanFull[date.getMonth()]} ${date.getFullYear()}`;
   let sigCenter = 630;
   ctx.textAlign = 'center';
-  write(\`TULUNG, \${tglString}\`, sigCenter, yBottom + 20);
+  write(`TULUNG, ${tglString}`, sigCenter, yBottom + 20);
   write("MANAGER", sigCenter, yBottom + 35);
   write("MARTONO AJI PRABOWO", sigCenter, yBottom + 95);
   ctx.textAlign = 'left';
@@ -804,6 +745,12 @@ function createPDF(r) {
     doc.save(`Tunggakan_${r.idpel}.pdf`);
   }
 }
+function exportExcel() {
+  const ws = XLSX.utils.json_to_sheet(currentDetail), wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Data");
+  XLSX.writeFile(wb, `Rekap_${currentTitle}.xlsx`);
+}
+
 function generateCanvasInvoice(r) {
   const canvas = document.createElement('canvas');
   const scale = 3; 
@@ -885,10 +832,10 @@ function generateCanvasInvoice(r) {
   const date = new Date();
   const nBulanFull = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
   const blnIniFull = nBulanFull[date.getMonth()];
-  const tglString = \`\${date.getDate()} \${nBulanFull[date.getMonth()]} \${date.getFullYear()}\`;
+  const tglString = `${date.getDate()} ${nBulanFull[date.getMonth()]} ${date.getFullYear()}`;
 
-  const p1 = \`     Bersama ini kami sampaikan bahwa Jumlah Total tagihan listrik bulan \${blnIniFull} \${date.getFullYear()} adalah Rp \${parseIDR(r.jumlah || r.Jumlah || r.JUMLAH).toLocaleString("id-ID")} (Belum termasuk biaya admin Bank). Agar terhindar dari pemutusan aliran listrik, kami berharap agar tagihan di atas segera dilunasi. Batas akhir pembayaran tagihan listrik adalah tanggal 20 setiap bulannya & hari libur transaksi masih bisa dilakukan pada Loket-loket PPOB online. Apabila sampai dengan batas waktu yang ditentukan, tanggal 20 belum lunas, maka akan dilakukan pemutusan aliran listrik.\`;
-  const p2 = \`     Demikian atas perhatian dan kerjasamanya diucapkan terimakasih.\`;
+  const p1 = `     Bersama ini kami sampaikan bahwa Jumlah Total tagihan listrik bulan ${blnIniFull} ${date.getFullYear()} adalah Rp ${parseIDR(r.jumlah || r.Jumlah || r.JUMLAH).toLocaleString("id-ID")} (Belum termasuk biaya admin Bank). Agar terhindar dari pemutusan aliran listrik, kami berharap agar tagihan di atas segera dilunasi. Batas akhir pembayaran tagihan listrik adalah tanggal 20 setiap bulannya & hari libur transaksi masih bisa dilakukan pada Loket-loket PPOB online. Apabila sampai dengan batas waktu yang ditentukan, tanggal 20 belum lunas, maka akan dilakukan pemutusan aliran listrik.`;
+  const p2 = `     Demikian atas perhatian dan kerjasamanya diucapkan terimakasih.`;
 
   const wrapText = (text, x, y, maxWidth, lineHeight) => {
     const words = text.split(' '); let line = '';
@@ -907,7 +854,7 @@ function generateCanvasInvoice(r) {
   yR = wrapText(p2, xR, yR, 530, 15);
 
   yR += 5;
-  write(\`Tulung, \${tglString}\`, 620, yR); yR += 20;
+  write(`Tulung, ${tglString}`, 620, yR); yR += 20;
 
   ctx.beginPath(); ctx.moveTo(xR, yR); ctx.lineTo(xR + 320, yR); ctx.stroke();
   yR += 5;
@@ -932,7 +879,7 @@ function createImage(r) {
   const prefix = currentSheet === 'invoice' ? 'Invoice_' : 'Tunggakan_';
   
   const link = document.createElement('a');
-  link.download = \`\${prefix}\${r.idpel}.jpg\`;
+  link.download = `${prefix}${r.idpel}.jpg`;
   link.href = canvas.toDataURL('image/jpeg', 1.0);
   link.click();
 }
