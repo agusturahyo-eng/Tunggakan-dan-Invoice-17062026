@@ -484,6 +484,12 @@ function openGlobal() {
   view.innerHTML = h;
 }
 
+function exportExcel() {
+  const ws = XLSX.utils.json_to_sheet(currentDetail), wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Data");
+  XLSX.writeFile(wb, `Rekap_${currentTitle}.xlsx`);
+}
+
 function exportSemuaExcel(k) {
   const dataToExport = k === "Semua" ? allData : allData.filter(r => (r.kode || r.Kode || r.KODE) === k);
   const ws = XLSX.utils.json_to_sheet(dataToExport);
